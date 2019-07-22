@@ -2,28 +2,35 @@ import sys
 from PySide2.QtWidgets import QApplication, QWidget, QVBoxLayout, QSlider
 from PySide2.QtGui import QPainter, QPaintEvent, QPen
 from PySide2 import QtCore
-from PySide2.QtCore import QTimer
+from PySide2.QtCore import QTimer, QTime
 
 class monPainter(QWidget):
     def __init__(self, parent=None):
         super(monPainter, self).__init__(parent)
-        self.hour= 0
-        self.min= 50
+        currentTime= QTime.currentTime()
+        self.sec= currentTime.second()
+        self.hour= currentTime.hour()
+        self.min= currentTime.minute()
         self.timer = QTimer()
         self.timer.setInterval(1000)
         self.timer.start()
         self.timer.timeout.connect(self.runTimer)
+        print(currentTime)
 
     def runTimer(self):
-        self.min+=1
-        if self.min >= 60:
-            self.hour = self.hour+ (self.min/60)
-            self.min = self.min%60
+        self.sec += 1
+        if self.sec == 60:          # >= 60
+            self.min += 1           # = self.min+ (self.sec/60)
+            self.sec = 0            # = self.sec%60
+            if self.min == 60:      # >= 60
+                self.hour += 1      # = self.min + (self.min/60)
+                self.min = 0        # = self.min % 60
         self.update()
+        print(self.hour, self.min, self.sec)
 
     def modifTimer(self, val):
         self.timer.setInterval (val)
-        self.update()
+        self.timer.start()
 
     def paintEvent(self, event:QPaintEvent):
         p = QPainter(self)
@@ -33,18 +40,25 @@ class monPainter(QWidget):
         p.drawEllipse(20,20,self.width()-40, self.height()-40)
 
         p.save()
-        p.translate(self.width()/2, self.height()/2) #permet de centrer l'aiguille
+        p.translate(self.width()/2, self.height()/2)        # permet de centrer l'aiguille
         p.save()
+        p.save()
+        p.rotate(270 + (360/60)*self.sec)
+        penSec = QPen(QtCore.Qt.black, 1)
+        p.setPen(penSec)
+        p.drawLine(0,0,(self.width()-40)/3,0)
+        p.restore()
+
         p.rotate(270 + (360/60)*self.min)
-        penMin = QPen(QtCore.Qt.blue, 5)
+        penMin = QPen(QtCore.Qt.black, 3)
         p.setPen(penMin)
         p.drawLine(0,0,(self.width()-40)/3,0)
         p.restore()
 
-        p.rotate(270+(360/12)*self.hour)
-        penHour = QPen(QtCore.Qt.black, 3)
+        p.rotate(270 + (360/12)*(self.hour) + ((360/60)*(self.min))/30)         # formule a trouver pour avoir une aiguille qui tourne progressivement
+        penHour = QPen(QtCore.Qt.black, 5)
         p.setPen(penHour)
-        p.drawLine(0,0,(self.width()-40)/4,0)
+        p.drawLine(0, 0, (self.width()-40)/5, 0)
         p.restore()
 
         p.setBrush(QtCore.Qt.magenta)
